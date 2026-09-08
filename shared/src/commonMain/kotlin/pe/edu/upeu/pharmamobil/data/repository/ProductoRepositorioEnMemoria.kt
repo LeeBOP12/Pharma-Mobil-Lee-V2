@@ -17,7 +17,7 @@ import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
  * son suspend: nada garantiza que dos llamadas no se crucen. El [Mutex]
  * protege la lista y el contador de ids de esa carrera.
  *
- * Hola Mundo pe
+ * XD Lee
  */
 class ProductoRepositorioEnMemoria : ProductoRepository {
 
