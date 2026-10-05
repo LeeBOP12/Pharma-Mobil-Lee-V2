@@ -8,6 +8,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import pe.edu.upeu.pharmamobil.data.repository.FakeProductoRepository
 import pe.edu.upeu.pharmamobil.domain.model.Producto
+import pe.edu.upeu.pharmamobil.domain.usecase.ActualizarProductoUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ListarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
 import kotlin.test.AfterTest
@@ -39,7 +41,9 @@ class ProductoViewModelTest {
         repositorio: FakeProductoRepository = FakeProductoRepository()
     ) = ProductoViewModel(
         registrarProducto = RegistrarProductoUseCase(repositorio),
-        listarProductos = ListarProductosUseCase(repositorio)
+        listarProductos = ListarProductosUseCase(repositorio),
+        actualizarProducto = ActualizarProductoUseCase(repositorio),
+        eliminarProducto = EliminarProductoUseCase(repositorio)
     )
 
     @Test
@@ -55,7 +59,9 @@ class ProductoViewModelTest {
 
         val repositorio = FakeProductoRepository(
             mutableListOf(
-                Producto(id = 1L, nombre = "Paracetamol", precio = 12.5, stock = 5)
+                Producto(id = 1L, nombre = "Paracetamol", precio = 12.5, stock = 5),
+                Producto(id = 2L, nombre = "Ibuprofeno", precio = 8.9, stock = 20),
+                Producto(id = 3L, nombre = "Amoxicilina", precio = 18.0, stock = 12)
             )
         )
 
@@ -63,6 +69,7 @@ class ProductoViewModelTest {
             nuevoViewModel(repositorio).uiState.value.fase
         )
 
+        assertEquals(3, fase.productos.size)
         assertEquals("S/ 12.50", fase.productos.first().precio)
         assertEquals("5 u.", fase.productos.first().stock)
         assertTrue(fase.productos.first().requiereReposicion)
@@ -83,22 +90,24 @@ class ProductoViewModelTest {
     }
 
     @Test
-    fun losErroresDeValidacionCaenEnElFormularioNoEnLaFase() = runTest {
+    fun precioCeroDejaErrorEnFormularioSinLlamarAlRepositorio() = runTest {
 
-        val viewModel = nuevoViewModel()
+        val repositorio = FakeProductoRepository()
+        val viewModel = nuevoViewModel(repositorio)
 
-        viewModel.onNombreChange("")
-        viewModel.onPrecioChange("abc")
-        viewModel.onStockChange("-1")
+        viewModel.onNombreChange("Paracetamol")
+        viewModel.onPrecioChange("0")
+        viewModel.onStockChange("5")
         viewModel.registrar()
 
         val estado = viewModel.uiState.value
 
-        assertEquals("El nombre es obligatorio", estado.formulario.nombreError)
-        assertEquals("El precio debe ser un número válido", estado.formulario.precioError)
-        assertEquals("El stock no puede ser negativo", estado.formulario.stockError)
+        assertNull(estado.formulario.nombreError)
+        assertEquals("El precio debe ser mayor a 0", estado.formulario.precioError)
+        assertNull(estado.formulario.stockError)
         assertEquals(ProductoUiState.Fase.SinProductos, estado.fase)
         assertNull(estado.mensajeExito)
+        assertEquals(0, repositorio.llamadasARegistrar)
     }
 
     @Test

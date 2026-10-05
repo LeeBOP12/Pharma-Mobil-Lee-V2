@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material3.Button
@@ -20,7 +22,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,15 +55,24 @@ fun ProductoScreen(
 
         FormularioProductoCard(
             formulario = uiState.formulario,
-            registrando = uiState.registrando,
+            operacion = uiState.operacion,
             onNombreChange = viewModel::onNombreChange,
             onPrecioChange = viewModel::onPrecioChange,
             onStockChange = viewModel::onStockChange,
-            onRegistrar = viewModel::registrar
+            onRegistrar = viewModel::registrar,
+            onCancelarEdicion = viewModel::cancelarEdicion
         )
 
         uiState.mensajeExito?.let {
             MensajeExito(it)
+        }
+
+        (uiState.operacion as? Operacion.Fallida)?.let {
+            Text(
+                text = it.mensaje,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
         }
 
         EncabezadoInventario(uiState.fase)
@@ -104,7 +117,12 @@ fun ProductoScreen(
                             items = fase.productos,
                             key = { it.id }
                         ) { producto ->
-                            ProductoItem(producto)
+                            ProductoItem(
+                                producto = producto,
+                                operacionEnCurso = uiState.operacion is Operacion.EnCurso,
+                                onEditar = { viewModel.seleccionarParaEditar(producto) },
+                                onEliminar = { viewModel.eliminar(producto) }
+                            )
                         }
                     }
 
@@ -130,12 +148,21 @@ fun ProductoScreen(
 @Composable
 private fun FormularioProductoCard(
     formulario: FormularioProducto,
-    registrando: Boolean,
+    operacion: Operacion,
     onNombreChange: (String) -> Unit,
     onPrecioChange: (String) -> Unit,
     onStockChange: (String) -> Unit,
-    onRegistrar: () -> Unit
+    onRegistrar: () -> Unit,
+    onCancelarEdicion: () -> Unit
 ) {
+    val enCurso = operacion is Operacion.EnCurso
+    val textoAccion = if (formulario.estaEditando) "Actualizar" else "Registrar"
+    val textoEnCurso = when ((operacion as? Operacion.EnCurso)?.tipo) {
+        TipoOperacion.Actualizar -> "Actualizando..."
+        TipoOperacion.Eliminar -> "Eliminando..."
+        TipoOperacion.Crear -> "Registrando..."
+        null -> "$textoAccion..."
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -147,7 +174,7 @@ private fun FormularioProductoCard(
         ) {
 
             Text(
-                text = "Registrar producto",
+                text = if (formulario.estaEditando) "Editar producto" else "Registrar producto",
                 style = MaterialTheme.typography.titleMedium
             )
 
@@ -186,12 +213,27 @@ private fun FormularioProductoCard(
                 )
             }
 
-            Button(
-                onClick = onRegistrar,
-                enabled = !registrando,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(if (registrando) "Registrando…" else "Registrar")
+                Button(
+                    onClick = onRegistrar,
+                    enabled = !enCurso,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(if (enCurso) textoEnCurso else textoAccion)
+                }
+
+                if (formulario.estaEditando) {
+                    OutlinedButton(
+                        onClick = onCancelarEdicion,
+                        enabled = !enCurso,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
             }
         }
     }
@@ -230,7 +272,10 @@ private fun EncabezadoInventario(
 
 @Composable
 private fun ProductoItem(
-    producto: ProductoUi
+    producto: ProductoUi,
+    operacionEnCurso: Boolean,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
 ) {
 
     Card(
@@ -291,6 +336,27 @@ private fun ProductoItem(
                         )
                     )
                 }
+            }
+
+            IconButton(
+                onClick = onEditar,
+                enabled = !operacionEnCurso
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Editar"
+                )
+            }
+
+            IconButton(
+                onClick = onEliminar,
+                enabled = !operacionEnCurso
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }

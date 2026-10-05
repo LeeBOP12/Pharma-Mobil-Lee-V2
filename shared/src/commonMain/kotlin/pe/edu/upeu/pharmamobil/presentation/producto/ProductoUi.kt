@@ -7,7 +7,9 @@ import pe.edu.upeu.pharmamobil.domain.model.Producto
 data class ProductoUi(
     val id: Long,
     val nombre: String,
+    val precioValor: Double,
     val precio: String,
+    val stockValor: Int,
     val stock: String,
     val requiereReposicion: Boolean
 )
@@ -15,7 +17,9 @@ data class ProductoUi(
 fun Producto.aUi(): ProductoUi = ProductoUi(
     id = id,
     nombre = nombre,
+    precioValor = precio,
     precio = precio.enSoles(),
+    stockValor = stock,
     stock = "$stock u.",
     requiereReposicion = requiereReposicion
 )
