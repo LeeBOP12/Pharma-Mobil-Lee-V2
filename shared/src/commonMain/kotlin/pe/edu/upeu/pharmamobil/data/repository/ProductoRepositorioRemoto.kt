@@ -20,7 +20,9 @@ class ProductoRepositorioRemoto(
 
     override suspend fun listar(): List<Producto> {
         return ejecutarLlamadaRemota {
-            productoApi.listar().contenido.map { it.toDomain() }
+            productoApi.listar().contenido
+                .filter { it.estado }
+                .map { it.toDomain() }
         }
     }
 

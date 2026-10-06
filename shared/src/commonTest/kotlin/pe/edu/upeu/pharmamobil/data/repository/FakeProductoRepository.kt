@@ -17,6 +17,7 @@ FakeProductoRepository(
     var fallaAlListar: Throwable? = null
     var fallaAlActualizar: Throwable? = null
     var fallaAlEliminar: Throwable? = null
+    var antesDeListar: suspend () -> Unit = {}
     var llamadasARegistrar: Int = 0
         private set
     var llamadasAListar: Int = 0
@@ -41,6 +42,7 @@ FakeProductoRepository(
     override suspend fun listar(): List<Producto> {
 
         llamadasAListar++
+        antesDeListar()
         fallaAlListar?.let { throw it }
 
         return productos.toList()

@@ -10,18 +10,22 @@ import kotlinx.coroutines.launch
 import pe.edu.upeu.pharmamobil.domain.error.ErrorApi
 import pe.edu.upeu.pharmamobil.domain.error.ErrorApiException
 import pe.edu.upeu.pharmamobil.domain.error.mensajeLegible
+import pe.edu.upeu.pharmamobil.domain.model.Producto
+import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.EliminarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ListarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ProductoInvalidoException
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.comoTextoParaCompartir
 
 
 class ProductoViewModel(
     private val registrarProducto: RegistrarProductoUseCase,
     private val listarProductos: ListarProductosUseCase,
     private val actualizarProducto: ActualizarProductoUseCase,
-    private val eliminarProducto: EliminarProductoUseCase
+    private val eliminarProducto: EliminarProductoUseCase,
+    private val compartidor: Compartidor
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProductoUiState())
@@ -154,6 +158,16 @@ class ProductoViewModel(
                 mensajeExito = null
             )
         }
+    }
+
+    fun compartir(producto: ProductoUi) {
+        val productoDominio = Producto(
+            id = producto.id,
+            nombre = producto.nombre,
+            precio = producto.precioValor,
+            stock = producto.stockValor
+        )
+        compartidor.compartir(productoDominio.comoTextoParaCompartir())
     }
 
     private fun actualizar() {

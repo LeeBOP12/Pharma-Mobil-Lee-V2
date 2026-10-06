@@ -50,6 +50,53 @@ Campos principales de `ProductoResponseDto`:
 | `categoriaId` | `Long?` | Se conserva como dato remoto |
 | `categoriaNombre` | `String?` | Se conserva como dato remoto |
 
+### Manejo de errores
+
+Las llamadas HTTP pasan por `ejecutarLlamadaRemota`, que convierte los fallos
+de Ktor en errores de dominio (`ErrorApi`) antes de que lleguen a la interfaz:
+
+- `400 Bad Request`: recupera `validationErrors` y los asocia con los campos
+  `nombre`, `precio` y `stock`.
+- `401 Unauthorized`, `404 Not Found` y `409 Conflict`: se traducen a errores
+  de autorización, recurso inexistente y conflicto, respectivamente.
+- Respuestas `5xx`, tiempo de espera agotado y fallos de conexión: producen
+  mensajes legibles de servidor, tiempo agotado o ausencia de conexión.
+- La cancelación de corrutinas se vuelve a lanzar para no tratarla como un
+  error de negocio.
+
+Los casos de uso exponen estos fallos mediante `Result`. `ProductoViewModel`
+muestra los errores de validación del servidor junto a cada campo y representa
+los demás fallos en `Operacion.Fallida` o `ProductoUiState.Fase.Error`. Después
+de crear, actualizar o eliminar correctamente, vuelve a cargar el inventario
+para mantener la pantalla sincronizada con el backend.
+
+Las pruebas de `commonTest` usan `FakeProductoRepository` para comprobar las
+transiciones de carga, la validación devuelta por el servidor y la recarga del
+inventario después de eliminar.
+
+### Capacidades nativas
+
+La sesion 9 incorpora capacidades que conservan el contrato y la interfaz en
+codigo comun, pero utilizan las API propias de cada sistema operativo:
+
+- `formatearSoles` se declara con `expect` en `commonMain`. Android la resuelve
+  con `NumberFormat` y la implementacion de iOS usa `NSNumberFormatter`.
+- `Compartidor` se declara como interfaz en `domain`. `CompartidorAndroid`
+  comparte texto con un `Intent`; `CompartidorIos` utiliza
+  `UIActivityViewController`.
+- Cada implementacion se registra en su `platformModule` y Koin entrega el
+  contrato comun al `ProductoViewModel`.
+- La pantalla de productos muestra el precio ya formateado y ofrece la accion
+  Compartir sin importar paquetes de Android ni UIKit.
+
+Archivos principales:
+
+| Source set | Archivos |
+| --- | --- |
+| `commonMain` | `platform/Formato.kt`, `domain/platform/Compartidor.kt`, `domain/usecase/TextoParaCompartir.kt` |
+| `androidMain` | `platform/Formato.android.kt`, `platform/CompartidorAndroid.kt`, `di/PlatformModule.android.kt` |
+| `iosMain` | `platform/Formato.ios.kt`, `platform/CompartidorIos.kt`, `di/PlatformModule.ios.kt` |
+
 Para ejecutar la prueba:
 
 1. Iniciar el backend Spring Boot en IntelliJ IDEA.
