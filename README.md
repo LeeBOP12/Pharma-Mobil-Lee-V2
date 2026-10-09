@@ -74,7 +74,7 @@ Las pruebas de `commonTest` usan `FakeProductoRepository` para comprobar las
 transiciones de carga, la validación devuelta por el servidor y la recarga del
 inventario después de eliminar.
 
-### Capacidades nativas
+### Código específico de plataforma
 
 La sesion 9 incorpora capacidades que conservan el contrato y la interfaz en
 codigo comun, pero utilizan las API propias de cada sistema operativo:
@@ -84,18 +84,26 @@ codigo comun, pero utilizan las API propias de cada sistema operativo:
 - `Compartidor` se declara como interfaz en `domain`. `CompartidorAndroid`
   comparte texto con un `Intent`; `CompartidorIos` utiliza
   `UIActivityViewController`.
+- `InfoDispositivo` se declara con `expect` en `commonMain`. Android obtiene la
+  version con `Build.VERSION.RELEASE` y iOS con
+  `UIDevice.currentDevice.systemVersion`.
 - Cada implementacion se registra en su `platformModule` y Koin entrega el
   contrato comun al `ProductoViewModel`.
 - La pantalla de productos muestra el precio ya formateado y ofrece la accion
   Compartir sin importar paquetes de Android ni UIKit.
+- La pantalla `Acerca de` muestra el sistema operativo y su version usando la
+  implementacion correspondiente a la plataforma.
 
-Archivos principales:
+Inventario de capacidades y archivos:
 
-| Source set | Archivos |
-| --- | --- |
-| `commonMain` | `platform/Formato.kt`, `domain/platform/Compartidor.kt`, `domain/usecase/TextoParaCompartir.kt` |
-| `androidMain` | `platform/Formato.android.kt`, `platform/CompartidorAndroid.kt`, `di/PlatformModule.android.kt` |
-| `iosMain` | `platform/Formato.ios.kt`, `platform/CompartidorIos.kt`, `di/PlatformModule.ios.kt` |
+| Capacidad | `commonMain` | `androidMain` | `iosMain` |
+| --- | --- | --- | --- |
+| Motor HTTP | `data/remote/HttpClientFactory.kt` - `expect fun motorHttp()` | `data/remote/HttpClientPlatform.android.kt` - Ktor Android | `data/remote/HttpClientPlatform.ios.kt` - Ktor Darwin |
+| URL del backend | `data/remote/HttpClientFactory.kt` - `expect val baseUrlBackend` | `data/remote/HttpClientPlatform.android.kt` - `10.0.2.2` | `data/remote/HttpClientPlatform.ios.kt` - `localhost` |
+| Módulo de inyección | `di/AppModule.kt` - `expect val platformModule` | `di/PlatformModule.android.kt` con `androidContext()` | `di/PlatformModule.ios.kt` sin contexto Android |
+| Formato de moneda | `platform/Formato.kt` - `expect fun formatearSoles()` | `platform/Formato.android.kt` - `NumberFormat` | `platform/Formato.ios.kt` - `NSNumberFormatter` |
+| Compartir producto | `domain/platform/Compartidor.kt` | `platform/CompartidorAndroid.kt` - `Intent.ACTION_SEND` | `platform/CompartidorIos.kt` - `UIActivityViewController` |
+| Información del dispositivo | `platform/InfoDispositivo.kt` - `expect class InfoDispositivo` | `platform/InfoDispositivo.android.kt` - `Build.VERSION.RELEASE` | `platform/InfoDispositivo.ios.kt` - `UIDevice.currentDevice` |
 
 Para ejecutar la prueba:
 

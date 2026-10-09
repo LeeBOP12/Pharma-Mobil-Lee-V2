@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalPharmacy
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Menu
@@ -51,6 +52,7 @@ import org.koin.compose.KoinContext
 import org.koin.compose.viewmodel.koinViewModel
 
 import pe.edu.upeu.pharmamobil.navigation.Screen
+import pe.edu.upeu.pharmamobil.presentation.acerca.AcercaScreen
 import pe.edu.upeu.pharmamobil.presentation.cliente.ClienteScreen
 import pe.edu.upeu.pharmamobil.presentation.components.EstadoVacio
 import pe.edu.upeu.pharmamobil.presentation.inicio.InicioScreen
@@ -68,7 +70,8 @@ private val DESTINOS = listOf(
     Destino(Screen.Inicio, "Inicio", Icons.Default.Home),
     Destino(Screen.Productos, "Productos", Icons.Default.Medication),
     Destino(Screen.Clientes, "Clientes", Icons.Default.Person),
-    Destino(Screen.Pedidos, "Pedidos", Icons.Default.ShoppingCart)
+    Destino(Screen.Pedidos, "Pedidos", Icons.Default.ShoppingCart),
+    Destino(Screen.Acerca, "Acerca de", Icons.Default.Info)
 )
 
 
@@ -228,6 +231,9 @@ fun App() = KoinContext {
                                 descripcion = "Este módulo llega en una próxima sesión del curso.",
                                 modifier = Modifier.align(Alignment.Center)
                             )
+
+                        Screen.Acerca ->
+                            AcercaScreen()
                     }
                 }
             }
