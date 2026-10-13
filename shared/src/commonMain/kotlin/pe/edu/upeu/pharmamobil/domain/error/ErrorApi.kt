@@ -5,6 +5,7 @@ sealed interface ErrorApi {
     data object NoEncontrado : ErrorApi
     data class Conflicto(val mensaje: String) : ErrorApi
     data object NoAutorizado : ErrorApi
+    data object SinPermiso : ErrorApi
     data object Servidor : ErrorApi
     data object SinConexion : ErrorApi
     data object TiempoAgotado : ErrorApi
@@ -21,6 +22,7 @@ fun ErrorApi.mensajeLegible(): String {
         ErrorApi.NoEncontrado -> "El recurso ya no existe"
         is ErrorApi.Conflicto -> mensaje
         ErrorApi.NoAutorizado -> "No autorizado"
+        ErrorApi.SinPermiso -> "No tienes permisos para realizar esta acción"
         ErrorApi.Servidor -> "El servidor no pudo procesar la solicitud"
         ErrorApi.SinConexion -> "No hay conexion con el servidor"
         ErrorApi.TiempoAgotado -> "La solicitud tardo demasiado"

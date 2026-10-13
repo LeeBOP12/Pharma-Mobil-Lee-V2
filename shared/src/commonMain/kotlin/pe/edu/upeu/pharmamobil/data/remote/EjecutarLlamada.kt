@@ -35,6 +35,7 @@ private suspend fun traducir4xx(e: ClientRequestException): ErrorApiException {
     val error = when (e.response.status) {
         HttpStatusCode.BadRequest -> ErrorApi.Validacion(cuerpo?.validationErrors.orEmpty())
         HttpStatusCode.Unauthorized -> ErrorApi.NoAutorizado
+        HttpStatusCode.Forbidden -> ErrorApi.SinPermiso
         HttpStatusCode.NotFound -> ErrorApi.NoEncontrado
         HttpStatusCode.Conflict -> ErrorApi.Conflicto(mensaje)
         else -> ErrorApi.Desconocido(mensaje)

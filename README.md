@@ -57,8 +57,9 @@ de Ktor en errores de dominio (`ErrorApi`) antes de que lleguen a la interfaz:
 
 - `400 Bad Request`: recupera `validationErrors` y los asocia con los campos
   `nombre`, `precio` y `stock`.
-- `401 Unauthorized`, `404 Not Found` y `409 Conflict`: se traducen a errores
-  de autorización, recurso inexistente y conflicto, respectivamente.
+- `401 Unauthorized`, `403 Forbidden`, `404 Not Found` y `409 Conflict`: se
+  traducen a sesión inválida, falta de permisos, recurso inexistente y
+  conflicto, respectivamente.
 - Respuestas `5xx`, tiempo de espera agotado y fallos de conexión: producen
   mensajes legibles de servidor, tiempo agotado o ausencia de conexión.
 - La cancelación de corrutinas se vuelve a lanzar para no tratarla como un
@@ -73,6 +74,33 @@ para mantener la pantalla sincronizada con el backend.
 Las pruebas de `commonTest` usan `FakeProductoRepository` para comprobar las
 transiciones de carga, la validación devuelta por el servidor y la recarga del
 inventario después de eliminar.
+
+### Autenticación
+
+PharmaMobil autentica contra `POST /api/v1/auth/login` y recupera la identidad
+guardada mediante `GET /api/v1/auth/me`. El plugin Auth de Ktor adjunta
+automáticamente `Authorization: Bearer <token>` a todas las solicitudes excepto
+al login. La cabecera se muestra saneada en depuración y el registro HTTP queda
+apagado en compilaciones que no sean de depuración.
+
+El token nunca se guarda en texto plano: Android utiliza
+`EncryptedSharedPreferences` y iOS utiliza Keychain. Un `401` elimina el token,
+cierra la sesión y devuelve al login; un `403` mantiene la sesión y muestra un
+mensaje de falta de permisos. Al cerrar sesión voluntariamente también se
+elimina el token y se limpia la caché del proveedor Bearer.
+
+Usuarios de prueba cargados por PharmaSoft:
+
+| Usuario | Contraseña | Rol | Acceso principal |
+| --- | --- | --- | --- |
+| `admin` | `Admin123` | `ADMIN` | Todos los permisos |
+| `vendedor` | `Vendedor123` | `VENDEDOR` | Catálogo de lectura, clientes y ventas |
+| `almacen` | `Almacen123` | `ALMACENERO` | Lectura y escritura del catálogo |
+
+La interfaz consulta los permisos de la sesión para ocultar las acciones que no
+corresponden a cada rol. Por ejemplo, `almacen` puede registrar productos pero
+no ve la sección Clientes, mientras que `vendedor` puede consultar el catálogo
+pero no modificarlo.
 
 ### Código específico de plataforma
 

@@ -44,6 +44,7 @@ import pe.edu.upeu.pharmamobil.presentation.components.ValidatedTextField
 @Composable
 fun ProductoScreen(
     viewModel: ProductoViewModel,
+    puedeEditar: Boolean,
     modifier: Modifier = Modifier
 ) {
 
@@ -56,15 +57,17 @@ fun ProductoScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        FormularioProductoCard(
-            formulario = uiState.formulario,
-            operacion = uiState.operacion,
-            onNombreChange = viewModel::onNombreChange,
-            onPrecioChange = viewModel::onPrecioChange,
-            onStockChange = viewModel::onStockChange,
-            onRegistrar = viewModel::registrar,
-            onCancelarEdicion = viewModel::cancelarEdicion
-        )
+        if (puedeEditar) {
+            FormularioProductoCard(
+                formulario = uiState.formulario,
+                operacion = uiState.operacion,
+                onNombreChange = viewModel::onNombreChange,
+                onPrecioChange = viewModel::onPrecioChange,
+                onStockChange = viewModel::onStockChange,
+                onRegistrar = viewModel::registrar,
+                onCancelarEdicion = viewModel::cancelarEdicion
+            )
+        }
 
         uiState.mensajeExito?.let {
             MensajeExito(it)
@@ -108,7 +111,11 @@ fun ProductoScreen(
                     EstadoVacio(
                         icono = Icons.Default.Inventory2,
                         titulo = "Todavía no hay productos",
-                        descripcion = "Registra el primero con el formulario de arriba.",
+                        descripcion = if (puedeEditar) {
+                            "Registra el primero con el formulario de arriba."
+                        } else {
+                            "No hay productos disponibles para consultar."
+                        },
                         modifier = Modifier.align(Alignment.Center)
                     )
 
@@ -123,6 +130,7 @@ fun ProductoScreen(
                             ProductoItem(
                                 producto = producto,
                                 operacionEnCurso = uiState.operacion is Operacion.EnCurso,
+                                puedeEditar = puedeEditar,
                                 onCompartir = { viewModel.compartir(producto) },
                                 onEditar = { viewModel.seleccionarParaEditar(producto) },
                                 onEliminar = { viewModel.eliminar(producto) }
@@ -278,6 +286,7 @@ private fun EncabezadoInventario(
 private fun ProductoItem(
     producto: ProductoUi,
     operacionEnCurso: Boolean,
+    puedeEditar: Boolean,
     onCompartir: () -> Unit,
     onEditar: () -> Unit,
     onEliminar: () -> Unit
@@ -359,25 +368,27 @@ private fun ProductoItem(
                     Text("Compartir")
                 }
 
-                IconButton(
-                    onClick = onEditar,
-                    enabled = !operacionEnCurso
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Editar"
-                    )
-                }
+                if (puedeEditar) {
+                    IconButton(
+                        onClick = onEditar,
+                        enabled = !operacionEnCurso
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar"
+                        )
+                    }
 
-                IconButton(
-                    onClick = onEliminar,
-                    enabled = !operacionEnCurso
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    IconButton(
+                        onClick = onEliminar,
+                        enabled = !operacionEnCurso
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }

@@ -5,31 +5,52 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import org.koin.core.qualifier.named
 import pe.edu.upeu.pharmamobil.data.repository.ClienteRepositorioEnMemoria
+import pe.edu.upeu.pharmamobil.data.remote.AuthApi
 import pe.edu.upeu.pharmamobil.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobil.data.remote.crearHttpClient
+import pe.edu.upeu.pharmamobil.data.repository.AuthRepositoryRemoto
 import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioRemoto
+import pe.edu.upeu.pharmamobil.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ClienteRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobil.domain.usecase.ActualizarProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.EliminarProductoUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.CerrarSesionUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.IniciarSesionUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ListarClientesUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ListarProductosUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.ObtenerProductoUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarClienteUseCase
 import pe.edu.upeu.pharmamobil.domain.usecase.RegistrarProductoUseCase
+import pe.edu.upeu.pharmamobil.domain.usecase.RecuperarSesionUseCase
+import pe.edu.upeu.pharmamobil.domain.session.GestorSesion
 import pe.edu.upeu.pharmamobil.presentation.cliente.ClienteViewModel
 import pe.edu.upeu.pharmamobil.presentation.producto.ProductoViewModel
+import pe.edu.upeu.pharmamobil.presentation.sesion.SesionViewModel
 
 
 val dataModule = module {
-    single { crearHttpClient() }
+    single { GestorSesion() }
+    single {
+        crearHttpClient(
+            almacenSeguro = get(),
+            gestorSesion = get(),
+            esDepuracion = get<Boolean>(named("esDepuracion"))
+        )
+    }
+    single { AuthApi(get()) }
     single { ProductoApi(get()) }
+    single<AuthRepository> { AuthRepositoryRemoto(get(), get(), get(), get()) }
     single<ProductoRepository> { ProductoRepositorioRemoto(get()) }
     single<ClienteRepository> { ClienteRepositorioEnMemoria() }
 }
 
 val domainModule = module {
+    factory { IniciarSesionUseCase(get()) }
+    factory { RecuperarSesionUseCase(get()) }
+    factory { CerrarSesionUseCase(get()) }
     factory { RegistrarProductoUseCase(get()) }
     factory { ListarProductosUseCase(get()) }
     factory { ObtenerProductoUseCase(get()) }
@@ -40,6 +61,7 @@ val domainModule = module {
 }
 
 val presentationModule = module {
+    viewModel { SesionViewModel(get(), get(), get(), get()) }
     viewModel { ProductoViewModel(get(), get(), get(), get(), get()) }
     viewModel { ClienteViewModel(get(), get()) }
 }
