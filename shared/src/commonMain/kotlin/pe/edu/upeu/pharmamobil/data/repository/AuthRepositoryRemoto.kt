@@ -11,6 +11,7 @@ import pe.edu.upeu.pharmamobil.domain.model.ErrorSesion
 import pe.edu.upeu.pharmamobil.domain.model.ErrorSesionException
 import pe.edu.upeu.pharmamobil.domain.model.Sesion
 import pe.edu.upeu.pharmamobil.data.local.AlmacenSeguro
+import pe.edu.upeu.pharmamobil.data.local.SesionLocal
 import pe.edu.upeu.pharmamobil.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobil.domain.session.GestorSesion
 
@@ -18,7 +19,8 @@ class AuthRepositoryRemoto(
     private val authApi: AuthApi,
     private val almacenSeguro: AlmacenSeguro,
     private val client: HttpClient,
-    private val gestorSesion: GestorSesion
+    private val gestorSesion: GestorSesion,
+    private val sesionLocal: SesionLocal
 ) : AuthRepository {
 
     override suspend fun iniciarSesion(credenciales: Credenciales): Sesion {
@@ -33,31 +35,45 @@ class AuthRepositoryRemoto(
             almacenSeguro.guardarToken(respuesta.token)
             client.clearAuthTokens()
 
-            respuesta.toDomain().also(gestorSesion::abrir)
+            respuesta.toDomain().also { sesion ->
+                sesionLocal.guardar(sesion)
+                gestorSesion.abrir(sesion)
+            }
         }
     }
 
     override suspend fun sesionGuardada(): Sesion? {
         val token = almacenSeguro.leerToken()?.takeIf { it.isNotBlank() }
-            ?: return null
+        if (token == null) {
+            sesionLocal.borrar()
+            return null
+        }
 
         client.clearAuthTokens()
 
         return try {
             ejecutarLlamadaSesion {
-                authApi.usuarioActual().toDomain(token).also(gestorSesion::abrir)
+                authApi.usuarioActual().toDomain(token).also { sesion ->
+                    sesionLocal.guardar(sesion)
+                    gestorSesion.abrir(sesion)
+                }
             }
         } catch (fallo: ErrorSesionException) {
             if (
                 fallo.error == ErrorSesion.CredencialesInvalidas ||
                 fallo.error == ErrorSesion.SesionExpirada
             ) {
+                val avisoServidor = gestorSesion.estado.value.aviso
                 almacenSeguro.borrarToken()
+                sesionLocal.borrar()
                 client.clearAuthTokens()
                 gestorSesion.cerrar(
-                    "Tu sesión venció o ya no es válida. Inicia sesión nuevamente."
+                    avisoServidor
+                        ?: "Tu sesión venció o ya no es válida. Inicia sesión nuevamente."
                 )
                 throw ErrorSesionException(ErrorSesion.SesionExpirada)
+            } else if (fallo.error == ErrorSesion.SinConexion) {
+                sesionLocal.leer(token)?.also(gestorSesion::abrir) ?: throw fallo
             } else {
                 throw fallo
             }
@@ -66,6 +82,7 @@ class AuthRepositoryRemoto(
 
     override suspend fun cerrarSesion() {
         almacenSeguro.borrarToken()
+        sesionLocal.borrar()
         client.clearAuthTokens()
         gestorSesion.cerrar()
     }

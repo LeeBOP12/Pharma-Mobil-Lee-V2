@@ -1,6 +1,8 @@
 package pe.edu.upeu.pharmamobil.data.repository
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import pe.edu.upeu.pharmamobil.domain.model.Producto
@@ -22,29 +24,24 @@ import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 class ProductoRepositorioEnMemoria : ProductoRepository {
 
     private val candado = Mutex()
-    private val productos = mutableListOf<Producto>()
+    private val productos = MutableStateFlow<List<Producto>>(emptyList())
     private var siguienteId = 1L
+
+    override fun observar(): Flow<List<Producto>> = productos
 
     override suspend fun registrar(producto: Producto): Producto {
         delay(RETARDO_REGISTRO_MS)
         return candado.withLock {
             val guardado = producto.copy(id = siguienteId++)
-            productos.add(guardado)
+            productos.value = productos.value + guardado
             guardado
-        }
-    }
-
-    override suspend fun listar(): List<Producto> {
-        delay(RETARDO_LISTADO_MS)
-        return candado.withLock {
-            productos.toList()
         }
     }
 
     override suspend fun obtener(id: Long): Producto {
         delay(RETARDO_LISTADO_MS)
         return candado.withLock {
-            productos.firstOrNull { it.id == id }
+            productos.value.firstOrNull { it.id == id }
                 ?: error("Producto no encontrado")
         }
     }
@@ -52,9 +49,11 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
     override suspend fun actualizar(producto: Producto): Producto {
         delay(RETARDO_REGISTRO_MS)
         return candado.withLock {
-            val indice = productos.indexOfFirst { it.id == producto.id }
+            val actuales = productos.value.toMutableList()
+            val indice = actuales.indexOfFirst { it.id == producto.id }
             if (indice < 0) error("Producto no encontrado")
-            productos[indice] = producto
+            actuales[indice] = producto
+            productos.value = actuales
             producto
         }
     }
@@ -62,9 +61,11 @@ class ProductoRepositorioEnMemoria : ProductoRepository {
     override suspend fun eliminar(id: Long) {
         delay(RETARDO_REGISTRO_MS)
         candado.withLock {
-            productos.removeAll { it.id == id }
+            productos.value = productos.value.filterNot { it.id == id }
         }
     }
+
+    override suspend fun sincronizar() = Unit
 
     private companion object {
         const val RETARDO_REGISTRO_MS = 5000L

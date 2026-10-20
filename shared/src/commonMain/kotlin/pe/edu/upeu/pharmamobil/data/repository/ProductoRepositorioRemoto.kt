@@ -5,20 +5,19 @@ import pe.edu.upeu.pharmamobil.data.mapper.toRequestDto
 import pe.edu.upeu.pharmamobil.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobil.data.remote.ejecutarLlamadaRemota
 import pe.edu.upeu.pharmamobil.domain.model.Producto
-import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 
 class ProductoRepositorioRemoto(
     private val productoApi: ProductoApi
-) : ProductoRepository {
+) {
 
-    override suspend fun registrar(producto: Producto): Producto {
+    suspend fun registrar(producto: Producto): Producto {
         return ejecutarLlamadaRemota {
             val categoriaId = obtenerCategoriaActivaId()
             productoApi.crear(producto.toRequestDto(categoriaId)).toDomain()
         }
     }
 
-    override suspend fun listar(): List<Producto> {
+    suspend fun listar(): List<Producto> {
         return ejecutarLlamadaRemota {
             productoApi.listar().contenido
                 .filter { it.estado }
@@ -26,13 +25,13 @@ class ProductoRepositorioRemoto(
         }
     }
 
-    override suspend fun obtener(id: Long): Producto {
+    suspend fun obtener(id: Long): Producto {
         return ejecutarLlamadaRemota {
             productoApi.obtener(id).toDomain()
         }
     }
 
-    override suspend fun actualizar(producto: Producto): Producto {
+    suspend fun actualizar(producto: Producto): Producto {
         return ejecutarLlamadaRemota {
             val categoriaId = obtenerCategoriaActivaId()
             productoApi.actualizar(
@@ -42,7 +41,7 @@ class ProductoRepositorioRemoto(
         }
     }
 
-    override suspend fun eliminar(id: Long) {
+    suspend fun eliminar(id: Long) {
         ejecutarLlamadaRemota {
             productoApi.eliminar(id)
         }

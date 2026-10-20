@@ -84,11 +84,18 @@ class SesionViewModel(
 
     fun salir() {
         viewModelScope.launch {
-            cerrarSesion().onFailure { fallo ->
-                _uiState.update {
-                    it.copy(error = mensajeDe(fallo, duranteLogin = false))
+            cerrarSesion().fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(usuario = "", clave = "", error = null)
+                    }
+                },
+                onFailure = { fallo ->
+                    _uiState.update {
+                        it.copy(error = mensajeDe(fallo, duranteLogin = false))
+                    }
                 }
-            }
+            )
         }
     }
 
@@ -104,7 +111,8 @@ class SesionViewModel(
                     _uiState.update {
                         it.copy(
                             verificandoSesion = false,
-                            error = mensajeDe(fallo, duranteLogin = false)
+                            error = gestorSesion.estado.value.aviso
+                                ?: mensajeDe(fallo, duranteLogin = false)
                         )
                     }
                 }
@@ -118,7 +126,7 @@ class SesionViewModel(
                 _uiState.update {
                     it.copy(
                         sesion = estado.sesion,
-                        error = estado.aviso ?: it.error
+                        error = estado.aviso
                     )
                 }
             }

@@ -6,12 +6,17 @@ import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import org.koin.core.qualifier.named
+import pe.edu.upeu.pharmamobil.data.local.CreadorDeDriver
+import pe.edu.upeu.pharmamobil.data.local.ProductoLocal
+import pe.edu.upeu.pharmamobil.data.local.SesionLocal
 import pe.edu.upeu.pharmamobil.data.repository.ClienteRepositorioEnMemoria
 import pe.edu.upeu.pharmamobil.data.remote.AuthApi
 import pe.edu.upeu.pharmamobil.data.remote.ProductoApi
 import pe.edu.upeu.pharmamobil.data.remote.crearHttpClient
 import pe.edu.upeu.pharmamobil.data.repository.AuthRepositoryRemoto
+import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioOffline
 import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioRemoto
+import pe.edu.upeu.pharmamobil.db.PharmaDb
 import pe.edu.upeu.pharmamobil.domain.repository.AuthRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ClienteRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
@@ -36,14 +41,19 @@ val dataModule = module {
     single {
         crearHttpClient(
             almacenSeguro = get(),
+            sesionLocal = get(),
             gestorSesion = get(),
             esDepuracion = get<Boolean>(named("esDepuracion"))
         )
     }
     single { AuthApi(get()) }
     single { ProductoApi(get()) }
-    single<AuthRepository> { AuthRepositoryRemoto(get(), get(), get(), get()) }
-    single<ProductoRepository> { ProductoRepositorioRemoto(get()) }
+    single { PharmaDb(get<CreadorDeDriver>().crear()) }
+    single { ProductoLocal(get()) }
+    single { SesionLocal(get()) }
+    single<AuthRepository> { AuthRepositoryRemoto(get(), get(), get(), get(), get()) }
+    single { ProductoRepositorioRemoto(get()) }
+    single<ProductoRepository> { ProductoRepositorioOffline(get(), get()) }
     single<ClienteRepository> { ClienteRepositorioEnMemoria() }
 }
 
