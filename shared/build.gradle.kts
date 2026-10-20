@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -46,11 +47,13 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(libs.ktor.client.android)
             implementation(libs.androidx.security.crypto)
+            implementation(libs.sqldelight.android)
             // api: MainApplication (androidApp) usa androidContext() al arrancar Koin.
             api(libs.koin.android)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native)
         }
         commonMain.dependencies {
             // api: androidApp llama a initKoin(), cuya firma expone KoinAppDeclaration.
@@ -71,10 +74,36 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
+        }
+        named("androidHostTest") {
+            dependencies {
+                implementation(libs.sqldelight.jvm)
+            }
+        }
+        named("iosArm64Test") {
+            dependencies {
+                implementation(libs.sqldelight.native)
+            }
+        }
+        named("iosSimulatorArm64Test") {
+            dependencies {
+                implementation(libs.sqldelight.native)
+            }
+        }
+    }
+}
+
+sqldelight {
+    databases {
+        create("PharmaDb") {
+            packageName.set("pe.edu.upeu.pharmamobil.db")
         }
     }
 }

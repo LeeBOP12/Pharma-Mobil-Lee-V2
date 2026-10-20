@@ -8,6 +8,8 @@ import org.koin.dsl.module
 import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.data.local.AlmacenSeguro
 import pe.edu.upeu.pharmamobil.data.local.AlmacenSeguroIos
+import pe.edu.upeu.pharmamobil.data.local.CreadorDeDriver
+import pe.edu.upeu.pharmamobil.data.local.CreadorDeDriverIos
 import pe.edu.upeu.pharmamobil.platform.CompartidorIos
 
 @OptIn(ExperimentalNativeApi::class)
@@ -16,5 +18,6 @@ actual val platformModule: Module = module {
         Platform.isDebugBinary
     }
     single<AlmacenSeguro> { AlmacenSeguroIos() }
+    single<CreadorDeDriver> { CreadorDeDriverIos() }
     single<Compartidor> { CompartidorIos() }
 }
