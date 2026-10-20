@@ -133,6 +133,29 @@ Inventario de capacidades y archivos:
 | Compartir producto | `domain/platform/Compartidor.kt` | `platform/CompartidorAndroid.kt` - `Intent.ACTION_SEND` | `platform/CompartidorIos.kt` - `UIActivityViewController` |
 | Información del dispositivo | `platform/InfoDispositivo.kt` - `expect class InfoDispositivo` | `platform/InfoDispositivo.android.kt` - `Build.VERSION.RELEASE` | `platform/InfoDispositivo.ios.kt` - `UIDevice.currentDevice` |
 
+### Persistencia offline-first
+
+SQLDelight mantiene una base SQLite local llamada `pharma.db` y la pantalla de
+productos observa esa base mediante un `Flow`. La interfaz no consume la
+respuesta HTTP directamente: la sincronización actualiza la base y el cambio
+se refleja automáticamente en el inventario.
+
+- Los productos creados sin conexión reciben un identificador local negativo y
+  quedan con `pendiente = 1`.
+- Al sincronizar se suben primero los registros pendientes y después se obtiene
+  la lista actualizada de PharmaSoft, evitando perder el trabajo local.
+- Un fallo de red conserva los registros pendientes y muestra los últimos datos
+  guardados.
+- Android utiliza `AndroidSqliteDriver`, iOS utiliza `NativeSqliteDriver` y las
+  pruebas de `commonTest` utilizan una base SQLite en memoria.
+- La capa `ProductoLocal` solo conoce SQLDelight y el modelo de dominio; no
+  importa Ktor ni los DTO del backend.
+
+Para verificar el ciclo: sincroniza con PharmaSoft encendido, cierra la app,
+activa modo avión, vuelve a abrirla, registra un producto, desactiva modo avión
+y pulsa el botón de sincronización. El producto debe aparecer finalmente en
+Swagger con un identificador positivo asignado por el servidor.
+
 Para ejecutar la prueba:
 
 1. Iniciar el backend Spring Boot en IntelliJ IDEA.
