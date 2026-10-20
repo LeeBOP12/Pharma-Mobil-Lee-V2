@@ -1,5 +1,6 @@
 package pe.edu.upeu.pharmamobil.data.repository
 
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import pe.edu.upeu.pharmamobil.domain.model.Producto
 import kotlin.test.Test
@@ -33,7 +34,7 @@ class ProductoRepositorioEnMemoriaTest {
         repositorio.registrar(nuevoProducto("Paracetamol"))
         repositorio.registrar(nuevoProducto("Ibuprofeno"))
 
-        val resultado = repositorio.listar()
+        val resultado = repositorio.observar().first()
 
         assertEquals(2, resultado.size)
         assertEquals("Paracetamol", resultado[0].nombre)

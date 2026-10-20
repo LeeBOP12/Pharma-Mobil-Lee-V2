@@ -1,5 +1,9 @@
 package pe.edu.upeu.pharmamobil.data.repository
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import pe.edu.upeu.pharmamobil.domain.model.Producto
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 
@@ -10,13 +14,16 @@ import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
  */
 class
 FakeProductoRepository(
-    private val productos: MutableList<Producto> = mutableListOf()
+    productosIniciales: MutableList<Producto> = mutableListOf()
 ) : ProductoRepository {
+
+    private val productos = MutableStateFlow(productosIniciales.toList())
 
     var fallaAlRegistrar: Throwable? = null
     var fallaAlListar: Throwable? = null
     var fallaAlActualizar: Throwable? = null
     var fallaAlEliminar: Throwable? = null
+    var fallaAlSincronizar: Throwable? = null
     var antesDeListar: suspend () -> Unit = {}
     var llamadasARegistrar: Int = 0
         private set
@@ -26,8 +33,17 @@ FakeProductoRepository(
         private set
     var llamadasAEliminar: Int = 0
         private set
+    var llamadasASincronizar: Int = 0
+        private set
 
     private var siguienteId = 1L
+
+    override fun observar(): Flow<List<Producto>> = flow {
+        llamadasAListar++
+        antesDeListar()
+        fallaAlListar?.let { throw it }
+        emitAll(productos)
+    }
 
     override suspend fun registrar(producto: Producto): Producto {
 
@@ -35,21 +51,12 @@ FakeProductoRepository(
         fallaAlRegistrar?.let { throw it }
 
         val guardado = producto.copy(id = siguienteId++)
-        productos.add(guardado)
+        productos.value = productos.value + guardado
         return guardado
     }
 
-    override suspend fun listar(): List<Producto> {
-
-        llamadasAListar++
-        antesDeListar()
-        fallaAlListar?.let { throw it }
-
-        return productos.toList()
-    }
-
     override suspend fun obtener(id: Long): Producto {
-        return productos.firstOrNull { it.id == id }
+        return productos.value.firstOrNull { it.id == id }
             ?: error("Producto no encontrado")
     }
 
@@ -57,15 +64,22 @@ FakeProductoRepository(
         llamadasAActualizar++
         fallaAlActualizar?.let { throw it }
 
-        val indice = productos.indexOfFirst { it.id == producto.id }
+        val actuales = productos.value.toMutableList()
+        val indice = actuales.indexOfFirst { it.id == producto.id }
         if (indice < 0) error("Producto no encontrado")
-        productos[indice] = producto
+        actuales[indice] = producto
+        productos.value = actuales
         return producto
     }
 
     override suspend fun eliminar(id: Long) {
         llamadasAEliminar++
         fallaAlEliminar?.let { throw it }
-        productos.removeAll { it.id == id }
+        productos.value = productos.value.filterNot { it.id == id }
+    }
+
+    override suspend fun sincronizar() {
+        llamadasASincronizar++
+        fallaAlSincronizar?.let { throw it }
     }
 }

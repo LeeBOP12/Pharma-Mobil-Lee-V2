@@ -183,7 +183,7 @@ class ProductoViewModelTest {
     }
 
     @Test
-    fun registrarLimpiaElFormularioYRecargaElInventario() = runTest {
+    fun registrarLimpiaElFormularioYElFlowActualizaElInventario() = runTest {
 
         val viewModel = nuevoViewModel()
 
@@ -206,7 +206,7 @@ class ProductoViewModelTest {
     }
 
     @Test
-    fun eliminarRecargaElInventarioSinElProductoEliminado() = runTest {
+    fun eliminarActualizaElInventarioSinRecargarManualmente() = runTest {
 
         val repositorio = FakeProductoRepository(
             mutableListOf(
@@ -228,6 +228,6 @@ class ProductoViewModelTest {
         assertEquals(Operacion.Inactiva, estado.operacion)
         assertEquals("Producto \"Paracetamol\" eliminado", estado.mensajeExito)
         assertEquals(1, repositorio.llamadasAEliminar)
-        assertEquals(2, repositorio.llamadasAListar)
+        assertEquals(1, repositorio.llamadasAListar)
     }
 }

@@ -8,8 +8,12 @@ import kotlinx.coroutines.test.setMain
 import org.koin.core.Koin
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.dsl.module
+import pe.edu.upeu.pharmamobil.data.local.CreadorDeDriver
 import pe.edu.upeu.pharmamobil.data.repository.ClienteRepositorioEnMemoria
-import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioEnMemoria
+import pe.edu.upeu.pharmamobil.data.repository.ProductoRepositorioOffline
+import pe.edu.upeu.pharmamobil.data.repository.crearDriverEnMemoria
+import pe.edu.upeu.pharmamobil.domain.platform.Compartidor
 import pe.edu.upeu.pharmamobil.domain.repository.ClienteRepository
 import pe.edu.upeu.pharmamobil.domain.repository.ProductoRepository
 import pe.edu.upeu.pharmamobil.domain.usecase.ListarClientesUseCase
@@ -47,8 +51,22 @@ class AppModuleTest {
         Dispatchers.resetMain()
     }
 
+    private val moduloDePrueba = module {
+        single<CreadorDeDriver> {
+            object : CreadorDeDriver {
+                override fun crear() = crearDriverEnMemoria()
+            }
+        }
+        single<Compartidor> {
+            object : Compartidor {
+                override fun compartir(texto: String) = Unit
+            }
+        }
+    }
+
     private fun grafoCompleto(): Koin = startKoin {
-        modules(dataModule, domainModule, presentationModule, platformModule)
+        allowOverride(true)
+        modules(dataModule, domainModule, presentationModule, platformModule, moduloDePrueba)
     }.koin
 
     @Test
@@ -56,7 +74,7 @@ class AppModuleTest {
 
         val koin = grafoCompleto()
 
-        assertIs<ProductoRepositorioEnMemoria>(koin.get<ProductoRepository>())
+        assertIs<ProductoRepositorioOffline>(koin.get<ProductoRepository>())
         assertIs<ClienteRepositorioEnMemoria>(koin.get<ClienteRepository>())
     }
 
