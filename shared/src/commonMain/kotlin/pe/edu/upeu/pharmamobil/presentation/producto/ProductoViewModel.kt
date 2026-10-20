@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.edu.upeu.pharmamobil.domain.error.ErrorApi
@@ -32,35 +33,67 @@ class ProductoViewModel(
     val uiState: StateFlow<ProductoUiState> = _uiState.asStateFlow()
 
     init {
-        cargarProductos()
+        observarProductos()
+        sincronizar()
     }
 
-    fun cargarProductos() {
+    private fun observarProductos() {
+        viewModelScope.launch {
+            listarProductos.observar()
+                .catch { fallo ->
+                    _uiState.update {
+                        it.copy(
+                            fase = ProductoUiState.Fase.Error(
+                                fallo.message ?: "No se pudo leer el inventario guardado"
+                            )
+                        )
+                    }
+                }
+                .collect { productos ->
+                    _uiState.update {
+                        it.copy(
+                            fase = if (productos.isEmpty()) {
+                                ProductoUiState.Fase.SinProductos
+                            } else {
+                                ProductoUiState.Fase.ConProductos(productos.map { producto -> producto.aUi() })
+                            }
+                        )
+                    }
+                }
+        }
+    }
+
+    fun sincronizar() {
+        if (_uiState.value.sincronizando) return
 
         viewModelScope.launch {
+            _uiState.update { it.copy(sincronizando = true) }
 
-            _uiState.update {
-                it.copy(fase = ProductoUiState.Fase.Cargando)
-            }
-
-            val fase = listarProductos().fold(
-                onSuccess = { productos ->
-                    if (productos.isEmpty()) {
-                        ProductoUiState.Fase.SinProductos
-                    } else {
-                        ProductoUiState.Fase.ConProductos(productos.map { it.aUi() })
+            listarProductos.sincronizar().fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(sincronizando = false, avisoRed = null)
                     }
                 },
                 onFailure = { fallo ->
-                    ProductoUiState.Fase.Error(
-                        fallo.message ?: "No se pudo cargar el inventario"
-                    )
+                    val aviso = when (fallo) {
+                        is ErrorApiException -> when (fallo.error) {
+                            ErrorApi.SinConexion, ErrorApi.TiempoAgotado ->
+                                "Sin conexión: mostrando datos guardados"
+
+                            ErrorApi.Servidor ->
+                                "Servidor no disponible: mostrando datos guardados"
+
+                            else -> fallo.error.mensajeLegible()
+                        }
+
+                        else -> fallo.message ?: "No se pudo sincronizar el inventario"
+                    }
+                    _uiState.update {
+                        it.copy(sincronizando = false, avisoRed = aviso)
+                    }
                 }
             )
-
-            _uiState.update {
-                it.copy(fase = fase, operacion = Operacion.Inactiva)
-            }
         }
     }
 
@@ -126,7 +159,6 @@ class ProductoViewModel(
                             mensajeExito = "Producto \"${producto.nombre}\" registrado correctamente"
                         )
                     }
-                    cargarProductos()
                 },
                 onFailure = { fallo ->
                     manejarFalloFormulario(fallo, TipoOperacion.Crear)
@@ -199,7 +231,6 @@ class ProductoViewModel(
                             mensajeExito = "Producto \"${producto.nombre}\" actualizado correctamente"
                         )
                     }
-                    cargarProductos()
                 },
                 onFailure = { fallo ->
                     manejarFalloFormulario(fallo, TipoOperacion.Actualizar)
@@ -227,7 +258,6 @@ class ProductoViewModel(
                             mensajeExito = "Producto \"${producto.nombre}\" eliminado"
                         )
                     }
-                    cargarProductos()
                 },
                 onFailure = { fallo ->
                     _uiState.update {

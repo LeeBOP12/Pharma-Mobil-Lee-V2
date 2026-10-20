@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -73,6 +74,14 @@ fun ProductoScreen(
             MensajeExito(it)
         }
 
+        uiState.avisoRed?.let { aviso ->
+            Text(
+                text = aviso,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         (uiState.operacion as? Operacion.Fallida)?.let {
             Text(
                 text = it.mensaje,
@@ -81,7 +90,11 @@ fun ProductoScreen(
             )
         }
 
-        EncabezadoInventario(uiState.fase)
+        EncabezadoInventario(
+            fase = uiState.fase,
+            sincronizando = uiState.sincronizando,
+            onSincronizar = viewModel::sincronizar
+        )
 
         Box(
             modifier = Modifier
@@ -146,8 +159,8 @@ fun ProductoScreen(
                         colorIcono = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center),
                         accion = {
-                            FilledTonalButton(onClick = viewModel::cargarProductos) {
-                                Text("Reintentar")
+                            FilledTonalButton(onClick = viewModel::sincronizar) {
+                                Text("Sincronizar")
                             }
                         }
                     )
@@ -254,7 +267,9 @@ private fun FormularioProductoCard(
 
 @Composable
 private fun EncabezadoInventario(
-    fase: ProductoUiState.Fase
+    fase: ProductoUiState.Fase,
+    sincronizando: Boolean,
+    onSincronizar: () -> Unit
 ) {
 
     Row(
@@ -277,6 +292,20 @@ private fun EncabezadoInventario(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        IconButton(
+            onClick = onSincronizar,
+            enabled = !sincronizando
+        ) {
+            if (sincronizando) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Sincronizar productos"
+                )
+            }
         }
     }
 }
